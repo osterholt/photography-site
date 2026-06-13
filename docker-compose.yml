@@ -1,0 +1,18 @@
+services:
+  gallery:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount your photos folder — subfolders become albums automatically
+      - ./photos:/app/photos
+      # Persist generated thumbnails so they survive container restarts
+      - ./.thumbnails:/app/.thumbnails
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

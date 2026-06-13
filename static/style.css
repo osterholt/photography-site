@@ -1,0 +1,343 @@
+/* ================================================================
+   Design Tokens
+   ================================================================ */
+:root {
+    --bg:          #0A0A0A;   /* near-black canvas — photos pop */
+    --surface:     #141414;
+    --border:      #232323;
+    --accent:      #C9A96E;   /* warm amber — darkroom/film feel */
+    --text:        #F0EDE8;   /* warm white — easier on eyes in dark */
+    --muted:       #5C5C5C;
+
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body:    'DM Sans', system-ui, sans-serif;
+
+    --gap:    6px;
+    --radius: 2px;
+    --page-padding: 40px;
+}
+
+/* ================================================================
+   Reset
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 300;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+img  { display: block; width: 100%; height: auto; }
+a    { color: inherit; text-decoration: none; }
+
+/* ================================================================
+   Header
+   ================================================================ */
+.site-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 28px var(--page-padding);
+    border-bottom: 1px solid var(--border);
+}
+
+.site-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+}
+.site-name:hover { color: var(--accent); }
+
+.site-divider { color: var(--border); }
+
+.site-tagline {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* ================================================================
+   Page intro — shared by both pages
+   ================================================================ */
+.page-intro {
+    padding: 52px var(--page-padding) 36px;
+}
+
+.back-link {
+    display: inline-block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+    transition: color 0.2s;
+}
+.back-link:hover { color: var(--accent); }
+
+.page-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.75rem);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+}
+
+.page-meta {
+    margin-top: 10px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* ================================================================
+   Album grid  (index page)
+   ================================================================ */
+.album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--gap);
+    padding: 0 var(--page-padding) 72px;
+}
+
+.album-card {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    aspect-ratio: 4 / 3;
+    /* Amber accent border revealed on hover */
+    outline: 1px solid transparent;
+    transition: outline-color 0.25s;
+}
+.album-card:hover { outline-color: var(--accent); }
+
+.album-cover {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.55s ease, filter 0.35s ease;
+    filter: brightness(0.72) saturate(0.88);
+}
+.album-card:hover .album-cover img {
+    transform: scale(1.05);
+    filter: brightness(0.55) saturate(0.88);
+}
+
+.album-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 22px;
+    background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%);
+    pointer-events: none;
+    transition: background 0.35s;
+}
+.album-card:hover .album-overlay {
+    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 68%);
+}
+
+.album-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 1.2;
+}
+.album-count {
+    margin-top: 5px;
+    font-size: 0.7rem;
+    color: rgba(240, 237, 232, 0.55);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* ================================================================
+   Photo grid  (album page) — native CSS columns = free masonry
+   ================================================================ */
+.photo-grid {
+    columns: 3;
+    column-gap: var(--gap);
+    padding: 0 var(--page-padding) 72px;
+}
+
+.photo-item {
+    break-inside: avoid;
+    margin-bottom: var(--gap);
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    cursor: pointer;
+    /* Amber accent border, same signature as album cards */
+    outline: 1px solid transparent;
+    transition: outline-color 0.22s;
+}
+.photo-item:hover { outline-color: var(--accent); }
+
+.photo-item img {
+    display: block;
+    width: 100%;
+    filter: brightness(0.88) saturate(0.95);
+    transition: filter 0.3s, transform 0.45s ease;
+}
+.photo-item:hover img {
+    filter: brightness(1) saturate(1.05);
+    transform: scale(1.015);
+}
+
+/* ================================================================
+   Lightbox
+   ================================================================ */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: rgba(5, 5, 5, 0.97);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.lightbox.active { display: flex; }
+
+.lb-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: calc(100vw - 100px);
+    max-height: 100vh;
+    cursor: default;  /* clicking image does nothing; clicking backdrop closes */
+}
+/* Override: clicking backdrop (lb-stage) closes lightbox, but not the image */
+.lb-stage { cursor: zoom-out; }
+#lbImg     { cursor: default; }
+
+#lbImg {
+    max-width: 100%;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    user-select: none;
+    border-radius: var(--radius);
+}
+
+/* Close button */
+.lb-close {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 8px 10px;
+    z-index: 901;
+    font-family: var(--font-body);
+    transition: color 0.2s;
+}
+.lb-close:hover { color: var(--text); }
+
+/* Prev / Next */
+.lb-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 3.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 20px 18px;
+    z-index: 901;
+    font-family: var(--font-body);
+    font-weight: 200;
+    user-select: none;
+    transition: color 0.2s;
+}
+.lb-nav:hover { color: var(--text); }
+.lb-prev { left: 0; }
+.lb-next { right: 0; }
+
+/* Counter  "3 / 12" */
+.lb-counter {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    pointer-events: none;
+}
+
+/* ================================================================
+   Empty state
+   ================================================================ */
+.empty-state {
+    padding: 100px var(--page-padding);
+    text-align: center;
+    color: var(--muted);
+    line-height: 1.8;
+}
+.empty-hint {
+    margin-top: 8px;
+    font-size: 0.875rem;
+}
+.empty-state code {
+    font-family: 'Courier New', monospace;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.85em;
+    color: var(--text);
+}
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+@media (max-width: 1100px) {
+    .photo-grid { columns: 2; }
+}
+
+@media (max-width: 768px) {
+    :root { --page-padding: 20px; }
+
+    .site-header { padding: 20px var(--page-padding); }
+    .page-intro  { padding: 36px var(--page-padding) 24px; }
+
+    .album-grid  { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .photo-grid  { columns: 2; }
+}
+
+@media (max-width: 480px) {
+    .photo-grid  { columns: 1; }
+    .lb-stage    { max-width: 100vw; }
+    .lb-nav      { font-size: 2.5rem; padding: 12px 10px; }
+}
+
+/* Honour reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .album-cover img,
+    .photo-item img { transition: none; }
+}

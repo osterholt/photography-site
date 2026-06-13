@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Albums{% endblock %}
+
+{% block content %}
+<div class="page-intro">
+    <h1 class="page-title">Albums</h1>
+    <p class="page-meta">{{ albums | length }} collection{% if albums | length != 1 %}s{% endif %}</p>
+</div>
+
+{% if albums %}
+<div class="album-grid">
+    {% for album in albums %}
+    <a href="/album/{{ album.slug }}" class="album-card">
+        <div class="album-cover">
+            <img
+                src="/thumbnails/{{ album.slug }}/{{ album.cover_name }}"
+                alt="{{ album.display_name }}"
+                loading="lazy"
+            >
+            <div class="album-overlay">
+                <span class="album-title">{{ album.display_name }}</span>
+                <span class="album-count">{{ album.count }} photo{% if album.count != 1 %}s{% endif %}</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No albums yet.</p>
+    <p class="empty-hint">Create a subfolder inside <code>photos/</code> and add some images to get started.</p>
+</div>
+{% endif %}
+{% endblock %}
