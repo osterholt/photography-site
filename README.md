@@ -1,7 +1,8 @@
 # Photo Gallery
 
-A self-hosted photography portfolio built with FastAPI + Pillow. Drop a folder
-of photos in, get a masonry grid and lightbox out — no database, no config.
+A self-hosted photography portfolio built with FastAPI + Pillow. Drop photos
+anywhere under `photos/`, get one date-sorted masonry grid and lightbox out —
+no database, no config.
 
 ## Project layout
 
@@ -12,11 +13,10 @@ photo-gallery/
 │   ├── thumbnails.py    # Pillow thumbnail + EXIF auto-rotation logic
 │   └── templates/       # Jinja2 HTML templates
 │       ├── base.html
-│       ├── index.html   # album grid
-│       └── album.html   # photo masonry grid + lightbox
+│       └── index.html   # photo masonry grid + lightbox
 ├── static/
 │   └── style.css        # all styling
-├── photos/              # ← put your photo folders here
+├── photos/              # ← put your photos here
 ├── .thumbnails/         # auto-generated, git-ignored
 ├── Dockerfile
 ├── docker-compose.yml
@@ -25,7 +25,10 @@ photo-gallery/
 
 ## Adding photos
 
-Each subfolder inside `photos/` becomes an album:
+All supported images under `photos/` are shown in one portfolio, sorted newest
+to oldest. Camera EXIF capture time is used when available, with filesystem
+modified time as the fallback. Subfolders are fine for storage, but they do not
+create albums in the UI.
 
 ```
 photos/
@@ -36,7 +39,8 @@ photos/
     └── IMG_3456.jpg
 ```
 
-Thumbnails are generated on first request and cached in `.thumbnails/`.
+Thumbnails are generated on first request and cached in `.thumbnails/`, using
+the same relative paths as `photos/`.
 Supported formats: **JPG, JPEG, PNG, WEBP, GIF, TIFF**.
 
 ---

@@ -4,7 +4,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Mount your photos folder — subfolders become albums automatically
+      # Mount your photos folder; images are scanned recursively
       - ./photos:/app/photos
       # Persist generated thumbnails so they survive container restarts
       - ./.thumbnails:/app/.thumbnails

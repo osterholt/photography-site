@@ -101,76 +101,7 @@ a    { color: inherit; text-decoration: none; }
 }
 
 /* ================================================================
-   Album grid  (index page)
-   ================================================================ */
-.album-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--gap);
-    padding: 0 var(--page-padding) 72px;
-}
-
-.album-card {
-    display: block;
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--radius);
-    aspect-ratio: 4 / 3;
-    /* Amber accent border revealed on hover */
-    outline: 1px solid transparent;
-    transition: outline-color 0.25s;
-}
-.album-card:hover { outline-color: var(--accent); }
-
-.album-cover {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-.album-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.55s ease, filter 0.35s ease;
-    filter: brightness(0.72) saturate(0.88);
-}
-.album-card:hover .album-cover img {
-    transform: scale(1.05);
-    filter: brightness(0.55) saturate(0.88);
-}
-
-.album-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 22px;
-    background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%);
-    pointer-events: none;
-    transition: background 0.35s;
-}
-.album-card:hover .album-overlay {
-    background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 68%);
-}
-
-.album-title {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    font-weight: 400;
-    line-height: 1.2;
-}
-.album-count {
-    margin-top: 5px;
-    font-size: 0.7rem;
-    color: rgba(240, 237, 232, 0.55);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-/* ================================================================
-   Photo grid  (album page) — native CSS columns = free masonry
+   Photo grid — native CSS columns = free masonry
    ================================================================ */
 .photo-grid {
     columns: 3;
@@ -185,7 +116,6 @@ a    { color: inherit; text-decoration: none; }
     overflow: hidden;
     border-radius: var(--radius);
     cursor: pointer;
-    /* Amber accent border, same signature as album cards */
     outline: 1px solid transparent;
     transition: outline-color 0.22s;
 }
@@ -194,11 +124,9 @@ a    { color: inherit; text-decoration: none; }
 .photo-item img {
     display: block;
     width: 100%;
-    filter: brightness(0.88) saturate(0.95);
-    transition: filter 0.3s, transform 0.45s ease;
+    transition: transform 0.45s ease;
 }
 .photo-item:hover img {
-    filter: brightness(1) saturate(1.05);
     transform: scale(1.015);
 }
 
@@ -326,7 +254,6 @@ a    { color: inherit; text-decoration: none; }
     .site-header { padding: 20px var(--page-padding); }
     .page-intro  { padding: 36px var(--page-padding) 24px; }
 
-    .album-grid  { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
     .photo-grid  { columns: 2; }
 }
 
@@ -338,6 +265,5 @@ a    { color: inherit; text-decoration: none; }
 
 /* Honour reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .album-cover img,
     .photo-item img { transition: none; }
 }

@@ -1,34 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Albums{% endblock %}
+{% block title %}Portfolio{% endblock %}
 
 {% block content %}
 <div class="page-intro">
-    <h1 class="page-title">Albums</h1>
-    <p class="page-meta">{{ albums | length }} collection{% if albums | length != 1 %}s{% endif %}</p>
+    <h1 class="page-title">Portfolio</h1>
+    <p class="page-meta">{{ count }} photo{% if count != 1 %}s{% endif %}</p>
 </div>
 
-{% if albums %}
-<div class="album-grid">
-    {% for album in albums %}
-    <a href="/album/{{ album.slug }}" class="album-card">
-        <div class="album-cover">
-            <img
-                src="/thumbnails/{{ album.slug }}/{{ album.cover_name }}"
-                alt="{{ album.display_name }}"
-                loading="lazy"
-            >
-            <div class="album-overlay">
-                <span class="album-title">{{ album.display_name }}</span>
-                <span class="album-count">{{ album.count }} photo{% if album.count != 1 %}s{% endif %}</span>
-            </div>
-        </div>
-    </a>
+{% if photos %}
+<div class="photo-grid">
+    {% for photo in photos %}
+    <div class="photo-item" onclick="openLightbox({{ loop.index0 }})">
+        <img
+            src="/thumbnails/{{ photo.url_path }}"
+            alt="Photo {{ loop.index }}"
+            loading="lazy"
+        >
+    </div>
     {% endfor %}
+</div>
+
+<div id="lightbox" class="lightbox">
+    <button class="lb-close" onclick="closeLightbox(event)" aria-label="Close">✕</button>
+    <button class="lb-nav lb-prev" onclick="navigate(-1, event)" aria-label="Previous">‹</button>
+    <div class="lb-stage" onclick="closeLightbox(event)">
+        <img id="lbImg" src="" alt="Full size photo">
+    </div>
+    <button class="lb-nav lb-next" onclick="navigate(1, event)" aria-label="Next">›</button>
+    <div class="lb-counter" id="lbCounter"></div>
 </div>
 {% else %}
 <div class="empty-state">
-    <p>No albums yet.</p>
-    <p class="empty-hint">Create a subfolder inside <code>photos/</code> and add some images to get started.</p>
+    <p>No photos yet.</p>
+    <p class="empty-hint">Add images anywhere inside <code>photos/</code> to get started.</p>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if photos %}
+<script>
+    const PHOTOS = {{ photos_json | safe }};
+    const PHOTO_INDEX_BY_ID = new Map(PHOTOS.map((photo, index) => [photo.id, index]));
+    let current  = 0;
+
+    const lightbox = document.getElementById("lightbox");
+    const lbImg    = document.getElementById("lbImg");
+    const lbCount  = document.getElementById("lbCounter");
+
+    function photoUrl(photoId) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("photo", photoId);
+        return `${url.pathname}${url.search}`;
+    }
+
+    function portfolioUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("photo");
+        return `${url.pathname}${url.search}`;
+    }
+
+    function setLightboxPhoto(index) {
+        current = index;
+        lbImg.src = `/photos/${PHOTOS[current].url_path}`;
+        lbCount.textContent = `${current + 1} / ${PHOTOS.length}`;
+    }
+
+    function openLightbox(index, updateHistory = true) {
+        setLightboxPhoto(index);
+        lightbox.classList.add("active");
+        document.body.style.overflow = "hidden";
+        if (updateHistory) {
+            history.pushState({ photoId: PHOTOS[current].id }, "", photoUrl(PHOTOS[current].id));
+        }
+    }
+
+    function closeLightbox(e, updateHistory = true) {
+        if (e && e.target === lbImg) return;
+        lightbox.classList.remove("active");
+        lbImg.src = "";
+        document.body.style.overflow = "";
+        if (updateHistory) {
+            history.pushState({}, "", portfolioUrl());
+        }
+    }
+
+    function navigate(dir, e) {
+        e.stopPropagation();
+        setLightboxPhoto((current + dir + PHOTOS.length) % PHOTOS.length);
+        history.replaceState({ photoId: PHOTOS[current].id }, "", photoUrl(PHOTOS[current].id));
+    }
+
+    function syncLightboxWithUrl() {
+        const photoId = new URLSearchParams(window.location.search).get("photo");
+        if (!photoId) {
+            closeLightbox(null, false);
+            return;
+        }
+
+        const index = PHOTO_INDEX_BY_ID.get(photoId);
+        if (index === undefined) {
+            closeLightbox(null, false);
+            return;
+        }
+
+        openLightbox(index, false);
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (!lightbox.classList.contains("active")) return;
+        if (e.key === "Escape")      closeLightbox(e);
+        if (e.key === "ArrowRight")  navigate(+1, { stopPropagation: () => {} });
+        if (e.key === "ArrowLeft")   navigate(-1, { stopPropagation: () => {} });
+    });
+
+    window.addEventListener("popstate", syncLightboxWithUrl);
+    syncLightboxWithUrl();
+</script>
 {% endif %}
 {% endblock %}

@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+import hashlib
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from PIL import ExifTags, Image
 
 from app.thumbnails import get_or_create_thumbnail
 
@@ -22,40 +27,97 @@ templates = Jinja2Templates(directory="app/templates")
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _is_safe(name: str) -> bool:
-    """Reject any path segment that tries to escape the photos directory."""
-    return ".." not in name and "/" not in name and "\\" not in name
+def _is_hidden(path: Path) -> bool:
+    return any(part.startswith(".") for part in path.parts)
 
 
-def get_albums() -> list[dict]:
+def _safe_photo_path(photo_path: str) -> Path:
+    try:
+        path = (PHOTOS_DIR / photo_path).resolve()
+        photos_root = PHOTOS_DIR.resolve()
+        relative_path = path.relative_to(photos_root)
+    except ValueError:
+        raise HTTPException(status_code=400)
+
+    if _is_hidden(relative_path):
+        raise HTTPException(status_code=404)
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404)
+    if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=404)
+
+    return path
+
+
+def _photo_created_at(path: Path) -> float:
+    exif_timestamp = _exif_created_at(path)
+    if exif_timestamp is not None:
+        return exif_timestamp
+    return path.stat().st_mtime
+
+
+def _exif_created_at(path: Path) -> float | None:
+    try:
+        with Image.open(path) as img:
+            exif = img.getexif()
+    except Exception:
+        return None
+
+    if not exif:
+        return None
+
+    date_tags = {"DateTimeOriginal", "DateTimeDigitized", "DateTime"}
+    tag_ids = {
+        tag_id
+        for tag_id, tag_name in ExifTags.TAGS.items()
+        if tag_name in date_tags
+    }
+
+    for tag_id in tag_ids:
+        value = exif.get(tag_id)
+        if not value:
+            continue
+        parsed = _parse_exif_datetime(str(value))
+        if parsed is not None:
+            return parsed
+
+    return None
+
+
+def _parse_exif_datetime(value: str) -> float | None:
+    from datetime import datetime
+
+    try:
+        return datetime.strptime(value, "%Y:%m:%d %H:%M:%S").timestamp()
+    except ValueError:
+        return None
+
+
+def get_portfolio_photos() -> list[dict]:
     if not PHOTOS_DIR.exists():
         return []
-    albums = []
-    for item in sorted(PHOTOS_DIR.iterdir()):
-        if not item.is_dir() or item.name.startswith("."):
+
+    photos = []
+    for path in PHOTOS_DIR.rglob("*"):
+        relative_path = path.relative_to(PHOTOS_DIR)
+        if not path.is_file() or _is_hidden(relative_path):
             continue
-        photos = sorted(
-            p for p in item.iterdir()
-            if p.suffix.lower() in SUPPORTED_EXTENSIONS
-        )
-        if photos:
-            albums.append({
-                "name": item.name,
-                "slug": item.name,
-                "count": len(photos),
-                "cover_name": photos[0].name,   # first photo as cover
-                "display_name": item.name.replace("-", " ").replace("_", " ").title(),
-            })
-    return albums
+        if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            continue
 
+        created_at = _photo_created_at(path)
+        photo_path = relative_path.as_posix()
+        url_path = quote(relative_path.as_posix(), safe="/")
+        photos.append({
+            "id": hashlib.sha1(photo_path.encode("utf-8")).hexdigest()[:12],
+            "path": photo_path,
+            "url_path": url_path,
+            "created_at": created_at,
+        })
 
-def get_photos_in_album(slug: str) -> list[Path] | None:
-    album_path = PHOTOS_DIR / slug
-    if not album_path.exists() or not album_path.is_dir():
-        return None
     return sorted(
-        p for p in album_path.iterdir()
-        if p.suffix.lower() in SUPPORTED_EXTENSIONS
+        photos,
+        key=lambda photo: (-photo["created_at"], photo["path"]),
     )
 
 
@@ -65,58 +127,36 @@ def get_photos_in_album(slug: str) -> list[Path] | None:
 
 @app.get("/")
 async def index(request: Request):
+    photos = get_portfolio_photos()
+    photo_data = [
+        {"id": photo["id"], "url_path": photo["url_path"]}
+        for photo in photos
+    ]
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "albums": get_albums()},
-    )
-
-
-@app.get("/album/{slug}")
-async def album(request: Request, slug: str):
-    if not _is_safe(slug):
-        raise HTTPException(status_code=400)
-
-    photos = get_photos_in_album(slug)
-    if photos is None:
-        raise HTTPException(status_code=404, detail="Album not found")
-
-    photo_names = [p.name for p in photos]
-    return templates.TemplateResponse(
-        "album.html",
         {
             "request": request,
-            "album_name": slug.replace("-", " ").replace("_", " ").title(),
-            "slug": slug,
-            "photos": photo_names,
-            "photos_json": json.dumps(photo_names),
+            "photos": photos,
+            "photos_json": json.dumps(photo_data),
             "count": len(photos),
         },
     )
 
 
-@app.get("/photos/{album}/{filename}")
-async def serve_photo(album: str, filename: str):
-    if not _is_safe(album) or not _is_safe(filename):
-        raise HTTPException(status_code=400)
-
-    path = PHOTOS_DIR / album / filename
-    if not path.exists() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
-        raise HTTPException(status_code=404)
-
+@app.get("/photos/{photo_path:path}")
+async def serve_photo(photo_path: str):
+    path = _safe_photo_path(photo_path)
     return FileResponse(path)
 
 
-@app.get("/thumbnails/{album}/{filename}")
-async def serve_thumbnail(album: str, filename: str):
-    if not _is_safe(album) or not _is_safe(filename):
-        raise HTTPException(status_code=400)
-
-    original = PHOTOS_DIR / album / filename
-    if not original.exists() or original.suffix.lower() not in SUPPORTED_EXTENSIONS:
-        raise HTTPException(status_code=404)
+@app.get("/thumbnails/{photo_path:path}")
+async def serve_thumbnail(photo_path: str):
+    original = _safe_photo_path(photo_path)
+    relative_path = original.relative_to(PHOTOS_DIR.resolve())
+    thumb_path = THUMBNAILS_DIR / relative_path.with_suffix(".jpg")
 
     thumb = get_or_create_thumbnail(
         original,
-        thumb_path=THUMBNAILS_DIR / album / (Path(filename).stem + ".jpg"),
+        thumb_path=thumb_path,
     )
     return FileResponse(thumb, media_type="image/jpeg")
